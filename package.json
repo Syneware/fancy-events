@@ -11,6 +11,17 @@
   },
   "author": "Syneware",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Syneware/fancy-events"
+  },
+  "keywords": [
+    "events",
+    "eventemitter",
+    "emitter",
+    "nodejs",
+    "express"
+  ],
   "devDependencies": {
     "typescript": "^4.5.2"
   }
