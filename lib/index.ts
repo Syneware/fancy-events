@@ -1,4 +1,3 @@
-
 interface Listener {
     callback: Function,
     once: boolean,
@@ -10,7 +9,19 @@ interface Listeners {
 
 interface EventObject {
     event: string,
-    stack?: object[]
+    stack?: {
+        typeName: string,
+        methodName: string,
+        function: Function,
+        functionName: string,
+        fileName: string,
+        lineNumber: number,
+    }[]
+}
+
+interface EventEmitterOptions {
+    mode?: 'wildcard' | 'regex' | 'simple',
+    includeStack?: boolean
 }
 
 export default class EventEmitter {
@@ -19,14 +30,23 @@ export default class EventEmitter {
     mode = "wildcard";
     includeStack = false;
 
-    constructor({mode = "wildcard", includeStack = false} = {}) {
-        this.mode = mode;
-        this.includeStack = includeStack;
+    constructor({mode = "wildcard", includeStack = false}: EventEmitterOptions) {
+        if (mode) {
+            this.mode = mode;
+        }
+        if (includeStack !== undefined) {
+            this.includeStack = includeStack;
+        }
     }
 
-    addListener = (event: string, cb: Function, options: {once?: boolean} = {}) => {
-        if (!this._listeners[event]) {
-            this._listeners[event] = [];
+    addListener = (event: string, cb: Function, options: { once?: boolean } = {}) => {
+        if (!Object.prototype.hasOwnProperty.call(this._listeners, event)) {
+            Object.defineProperty(this._listeners, event, {
+                value: [],
+                configurable: true,
+                writable: true,
+                enumerable: true
+            });
         }
         this.emit("newListener", event, cb);
 
@@ -40,17 +60,20 @@ export default class EventEmitter {
     };
 
     removeListener = (event: string, listener: Function) => {
-        if (this._listeners[event]) {
-            this._listeners[event] = this._listeners[event].filter((l) => l?.callback !== listener);
-            this.emit("removeListener", event, listener);
+        if (this.listeners(event).length) {
+            let listenerIndex = this._listeners[event].findIndex((l) => l?.callback !== listener);
+            if (listenerIndex > -1) {
+                this._listeners[event].splice(listenerIndex, 1);
+                this.emit("removeListener", event, listener);
+            }
         }
     };
 
     off = this.removeListener;
 
     removeAllListeners = (event: string) => {
-        if (event && this._listeners[event]) {
-            const callbacks = this._listeners[event];
+        if (event && this.listeners(event).length) {
+            const callbacks = this.listeners(event);
             delete this._listeners[event];
 
             for (const callback of callbacks) {
@@ -62,14 +85,14 @@ export default class EventEmitter {
     eventNames = () => Object.keys(this._listeners);
 
     listenerCount = (event: string): number => {
-        if (event && this._listeners[event]) {
-            return this._listeners[event].length;
+        if (event) {
+            return this.listeners(event).length;
         }
         return 0;
     };
 
-    listeners = (event:string) => {
-        if (event && this._listeners[event]) {
+    listeners = (event: string) => {
+        if (event && Object.prototype.hasOwnProperty.call(this._listeners, event)) {
             return this._listeners[event];
         }
         return [];

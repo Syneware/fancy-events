@@ -5,14 +5,15 @@ interface Listener {
 interface Listeners {
     [key: string]: Listener[];
 }
+interface EventEmitterOptions {
+    mode?: 'wildcard' | 'regex' | 'simple';
+    includeStack?: boolean;
+}
 export default class EventEmitter {
     _listeners: Listeners;
     mode: string;
     includeStack: boolean;
-    constructor({ mode, includeStack }?: {
-        mode?: string | undefined;
-        includeStack?: boolean | undefined;
-    });
+    constructor({ mode, includeStack }: EventEmitterOptions);
     addListener: (event: string, cb: Function, options?: {
         once?: boolean;
     }) => void;
