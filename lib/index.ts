@@ -30,7 +30,7 @@ export default class EventEmitter {
     mode = "wildcard";
     includeStack = false;
 
-    constructor({mode = "wildcard", includeStack = false}: EventEmitterOptions) {
+    constructor({mode = "wildcard", includeStack = false}: EventEmitterOptions = {}) {
         if (mode) {
             this.mode = mode;
         }

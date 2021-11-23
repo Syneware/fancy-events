@@ -13,7 +13,7 @@ export default class EventEmitter {
     _listeners: Listeners;
     mode: string;
     includeStack: boolean;
-    constructor({ mode, includeStack }: EventEmitterOptions);
+    constructor({ mode, includeStack }?: EventEmitterOptions);
     addListener: (event: string, cb: Function, options?: {
         once?: boolean;
     }) => void;

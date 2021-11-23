@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class EventEmitter {
-    constructor({ mode = "wildcard", includeStack = false }) {
+    constructor({ mode = "wildcard", includeStack = false } = {}) {
         this._listeners = {};
         this.mode = "wildcard";
         this.includeStack = false;
