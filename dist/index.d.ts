@@ -8,12 +8,14 @@ interface Listeners {
 interface EventEmitterOptions {
     mode?: 'wildcard' | 'regex' | 'simple';
     includeStack?: boolean;
+    delimiter?: string;
 }
 export default class EventEmitter {
     _listeners: Listeners;
     mode: string;
     includeStack: boolean;
-    constructor({ mode, includeStack }?: EventEmitterOptions);
+    delimiter: string;
+    constructor({ mode, includeStack, delimiter }?: EventEmitterOptions);
     addListener: (event: string, cb: Function, options?: {
         once?: boolean;
     }) => void;

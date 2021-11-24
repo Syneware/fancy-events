@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class EventEmitter {
-    constructor({ mode = "wildcard", includeStack = false } = {}) {
+    constructor({ mode = "wildcard", includeStack = false, delimiter = "." } = {}) {
         this._listeners = {};
         this.mode = "wildcard";
         this.includeStack = false;
+        this.delimiter = ".";
         this.addListener = (event, cb, options = {}) => {
             if (!Object.prototype.hasOwnProperty.call(this._listeners, event)) {
                 Object.defineProperty(this._listeners, event, {
@@ -91,8 +92,8 @@ class EventEmitter {
             if (this.mode === "wildcard") {
                 for (const ev in this._listeners) {
                     if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                        const parts = ev.split(".").map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-                        const regex = new RegExp(`^${parts.join("\\.")}$`);
+                        const parts = ev.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+                        const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
                         if (regex.test(event)) {
                             callListeners(ev, this._listeners[ev]);
                         }
@@ -118,6 +119,9 @@ class EventEmitter {
         }
         if (includeStack !== undefined) {
             this.includeStack = includeStack;
+        }
+        if (delimiter) {
+            this.delimiter = delimiter;
         }
     }
 }

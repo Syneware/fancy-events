@@ -1,14 +1,14 @@
 interface Listener {
-    callback: Function,
-    once: boolean,
+    callback: Function;
+    once: boolean;
 }
 
 interface Listeners {
-    [key: string]: Listener[]
+    [key: string]: Listener[];
 }
 
 interface EventObject {
-    event: string,
+    event: string;
     stack?: {
         typeName: string,
         methodName: string,
@@ -20,8 +20,9 @@ interface EventObject {
 }
 
 interface EventEmitterOptions {
-    mode?: 'wildcard' | 'regex' | 'simple',
-    includeStack?: boolean
+    mode?: 'wildcard' | 'regex' | 'simple';
+    includeStack?: boolean;
+    delimiter?: string;
 }
 
 export default class EventEmitter {
@@ -29,13 +30,17 @@ export default class EventEmitter {
 
     mode = "wildcard";
     includeStack = false;
+    delimiter = ".";
 
-    constructor({mode = "wildcard", includeStack = false}: EventEmitterOptions = {}) {
+    constructor({mode = "wildcard", includeStack = false, delimiter = "."}: EventEmitterOptions = {}) {
         if (mode) {
             this.mode = mode;
         }
         if (includeStack !== undefined) {
             this.includeStack = includeStack;
+        }
+        if (delimiter) {
+            this.delimiter = delimiter;
         }
     }
 
@@ -139,8 +144,8 @@ export default class EventEmitter {
         if (this.mode === "wildcard") {
             for (const ev in this._listeners) {
                 if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                    const parts = ev.split(".").map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-                    const regex = new RegExp(`^${parts.join("\\.")}$`);
+                    const parts = ev.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+                    const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
 
                     if (regex.test(event)) {
                         callListeners(ev, this._listeners[ev]);
