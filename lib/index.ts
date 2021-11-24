@@ -26,7 +26,7 @@ interface EventEmitterOptions {
 }
 
 export default class EventEmitter {
-    _listeners: Listeners = {};
+    private _listeners: Listeners = {};
 
     mode = "wildcard";
     includeStack = false;
@@ -103,7 +103,7 @@ export default class EventEmitter {
         return [];
     };
 
-    _getStack = () => {
+    private _getStack = () => {
         // @ts-ignore
         const prepareStackTraceOrg = Error.prepareStackTrace;
         const err = new Error();
