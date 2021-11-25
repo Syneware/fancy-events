@@ -115,7 +115,7 @@ export default class EventEmitter {
         return stacks?.slice(2) || [];
     };
 
-    emit = (event: string, ...params: any) => {
+    emit = (event: string, ...params: any[]) => {
         const eventObject: EventObject = {
             event: event,
         };

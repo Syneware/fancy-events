@@ -27,6 +27,6 @@ export default class EventEmitter {
     listenerCount: (event: string) => number;
     listeners: (event: string) => Listener[];
     private _getStack;
-    emit: (event: string, ...params: any) => void;
+    emit: (event: string, ...params: any[]) => void;
 }
 export {};
