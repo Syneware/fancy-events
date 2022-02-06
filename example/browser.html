@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fancy Events</title>
+    <script src="../dist/fancy-events.js"></script>
+</head>
+<body>
+<script>
+    const em = new EventEmitter();
+
+    em.on('todo.*', (e, data) => {
+        console.log(e, data);
+    });
+
+    //...
+
+    em.emit('todo.add', {test: 'data'});
+
+</script>
+</body>
+</html>

@@ -1,43 +1,46 @@
-(function (factory) {
-    if (typeof module === "object" && typeof module.exports === "object") {
-        var v = factory(require, exports);
-        if (v !== undefined) module.exports = v;
-    }
-    else if (typeof define === "function" && define.amd) {
-        define(["require", "exports"], factory);
-    }
-})(function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter = (function () {
+    'use strict';
+
     class EventEmitter {
         constructor({ mode = "wildcard", includeStack = false, delimiter = "." } = {}) {
             this._listeners = {};
+            this._wildcardsRegex = {};
+            this._listenerRegex = {};
             this.mode = "wildcard";
             this.includeStack = false;
             this.delimiter = ".";
             this.addListener = (event, cb, options = {}) => {
-                if (!Object.prototype.hasOwnProperty.call(this._listeners, event)) {
-                    Object.defineProperty(this._listeners, event, {
-                        value: [],
-                        configurable: true,
-                        writable: true,
-                        enumerable: true
-                    });
+                if (!hasOwnProperty(this._listeners, event)) {
+                    defineProperty(this._listeners, event, []);
                 }
                 this.emit("newListener", event, cb);
+                if (!hasOwnProperty(this._wildcardsRegex, event)) {
+                    const parts = event.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+                    const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
+                    defineProperty(this._wildcardsRegex, event, regex);
+                }
+                if (!hasOwnProperty(this._listenerRegex, event)) {
+                    defineProperty(this._listenerRegex, event, new RegExp(event));
+                }
                 this._listeners[event].push({ callback: cb, once: !!(options === null || options === void 0 ? void 0 : options.once) });
             };
             this.on = this.addListener;
             this.once = (event, cb, options = {}) => {
                 this.addListener(event, cb, Object.assign(Object.assign({}, options), { once: true }));
             };
-            this.removeListener = (event, listener) => {
-                if (this.listeners(event).length) {
-                    let listenerIndex = this._listeners[event].findIndex((l) => (l === null || l === void 0 ? void 0 : l.callback) !== listener);
+            this._removeListener = (event, listener) => {
+                if (this.listenerCount(event)) {
+                    let listenerIndex = this._listeners[event].findIndex((l) => (l === null || l === void 0 ? void 0 : l.callback) === listener);
                     if (listenerIndex > -1) {
                         this._listeners[event].splice(listenerIndex, 1);
-                        this.emit("removeListener", event, listener);
+                        return true;
                     }
+                }
+                return false;
+            };
+            this.removeListener = (event, listener) => {
+                if (this._removeListener(event, listener)) {
+                    this.emit("removeListener", event, listener);
                 }
             };
             this.off = this.removeListener;
@@ -58,7 +61,7 @@
                 return 0;
             };
             this.listeners = (event) => {
-                if (event && Object.prototype.hasOwnProperty.call(this._listeners, event)) {
+                if (event && hasOwnProperty(this._listeners, event)) {
                     return this._listeners[event];
                 }
                 return [];
@@ -75,6 +78,7 @@
                 return (stacks === null || stacks === void 0 ? void 0 : stacks.slice(2)) || [];
             };
             this.emit = (event, ...params) => {
+                var _a, _b, _c, _d;
                 const eventObject = {
                     event: event,
                 };
@@ -93,33 +97,26 @@
                     var _a;
                     for (const callback of callbacks) {
                         if (callback.once) {
-                            this.removeListener(e, callback === null || callback === void 0 ? void 0 : callback.callback);
+                            this._removeListener(e, callback === null || callback === void 0 ? void 0 : callback.callback);
                         }
                         (_a = callback === null || callback === void 0 ? void 0 : callback.callback) === null || _a === void 0 ? void 0 : _a.call(callback, eventObject, ...params);
                     }
                 };
                 if (this.mode === "wildcard") {
                     for (const ev in this._listeners) {
-                        if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                            const parts = ev.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-                            const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
-                            if (regex.test(event)) {
-                                callListeners(ev, this._listeners[ev]);
-                            }
+                        if (hasOwnProperty(this._listeners, ev) && ((_b = (_a = this._wildcardsRegex[ev]) === null || _a === void 0 ? void 0 : _a.test) === null || _b === void 0 ? void 0 : _b.call(_a, event))) {
+                            callListeners(ev, this._listeners[ev]);
                         }
                     }
                 }
                 else if (this.mode === "regex") {
                     for (const ev in this._listeners) {
-                        if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                            const regex = new RegExp(ev);
-                            if (regex.test(event)) {
-                                callListeners(ev, this._listeners[ev]);
-                            }
+                        if (hasOwnProperty(this._listeners, ev) && ((_d = (_c = this._listenerRegex[ev]) === null || _c === void 0 ? void 0 : _c.test) === null || _d === void 0 ? void 0 : _d.call(_c, event))) {
+                            callListeners(ev, this._listeners[ev]);
                         }
                     }
                 }
-                else if (Object.prototype.hasOwnProperty.call(this._listeners, event)) {
+                else if (hasOwnProperty(this._listeners, event)) {
                     callListeners(event, this._listeners[event]);
                 }
             };
@@ -134,5 +131,13 @@
             }
         }
     }
-    exports.default = EventEmitter;
-});
+    function defineProperty(source, key, value) {
+        return Object.defineProperty(source, key, { value, configurable: true, writable: true, enumerable: true });
+    }
+    function hasOwnProperty(obj, key) {
+        return Object.prototype.hasOwnProperty.call(obj, key);
+    }
+
+    return EventEmitter;
+
+})();

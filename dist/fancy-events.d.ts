@@ -9,6 +9,8 @@ interface EventEmitterOptions {
 }
 export default class EventEmitter {
     private _listeners;
+    private _wildcardsRegex;
+    private _listenerRegex;
     mode: string;
     includeStack: boolean;
     delimiter: string;
@@ -20,6 +22,7 @@ export default class EventEmitter {
         once?: boolean;
     }) => void;
     once: (event: string, cb: Function, options?: {}) => void;
+    private _removeListener;
     removeListener: (event: string, listener: Function) => void;
     off: (event: string, listener: Function) => void;
     removeAllListeners: (event: string) => void;

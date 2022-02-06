@@ -1,11 +1,11 @@
-const EventEmitter = require('./dist').default;
+const EventEmitter = require('../');
 
 
 const em = new EventEmitter();
 
 em.on('todo.*', (e, data) => {
     console.log(e, data);
-})
+});
 
 //...
 

@@ -2,11 +2,14 @@
   "name": "fancy-events",
   "version": "1.1.0",
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/fancy-events.cjs.js",
+  "module": "dist/fancy-events.es.js",
+  "browser": "dist/fancy-events.js",
+  "types": "dist/fancy-events.d.ts",
   "scripts": {
     "prepublish": "pnpm run build",
-    "build": "tsc && terser dist/index.js -o dist/index.min.js",
+    "build": "rollup --config rollup.config.js && tsc src/index.ts --emitDeclarationOnly --declaration --outDir dist && mv dist/index.d.ts dist/fancy-events.d.ts",
+    "clean": "rm -rf dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Syneware",
@@ -23,6 +26,12 @@
     "express"
   ],
   "devDependencies": {
-    "typescript": "^4.5.2"
+    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "@rollup/plugin-typescript": "^8.3.0",
+    "rollup": "^2.67.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.3.1",
+    "typescript": "^4.5.5"
   }
 }

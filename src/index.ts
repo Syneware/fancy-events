@@ -7,6 +7,10 @@ interface Listeners {
     [key: string]: Listener[];
 }
 
+interface ListenersRegex {
+    [key: string]: RegExp;
+}
+
 interface EventObject {
     event: string;
     stack?: {
@@ -27,6 +31,8 @@ interface EventEmitterOptions {
 
 export default class EventEmitter {
     private _listeners: Listeners = {};
+    private _wildcardsRegex: ListenersRegex = {};
+    private _listenerRegex: ListenersRegex = {};
 
     mode = "wildcard";
     includeStack = false;
@@ -45,15 +51,20 @@ export default class EventEmitter {
     }
 
     addListener = (event: string, cb: Function, options: { once?: boolean } = {}) => {
-        if (!Object.prototype.hasOwnProperty.call(this._listeners, event)) {
-            Object.defineProperty(this._listeners, event, {
-                value: [],
-                configurable: true,
-                writable: true,
-                enumerable: true
-            });
+        if (!hasOwnProperty(this._listeners, event)) {
+            defineProperty(this._listeners, event, []);
         }
         this.emit("newListener", event, cb);
+
+        if (!hasOwnProperty(this._wildcardsRegex, event)) {
+            const parts = event.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+            const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
+            defineProperty(this._wildcardsRegex, event, regex);
+        }
+
+        if (!hasOwnProperty(this._listenerRegex, event)) {
+            defineProperty(this._listenerRegex, event, new RegExp(event));
+        }
 
         this._listeners[event].push({callback: cb, once: !!options?.once});
     };
@@ -64,13 +75,20 @@ export default class EventEmitter {
         this.addListener(event, cb, {...options, once: true});
     };
 
-    removeListener = (event: string, listener: Function) => {
-        if (this.listeners(event).length) {
-            let listenerIndex = this._listeners[event].findIndex((l) => l?.callback !== listener);
+    private _removeListener = (event: string, listener: Function) => {
+        if (this.listenerCount(event)) {
+            let listenerIndex = this._listeners[event].findIndex((l) => l?.callback === listener);
             if (listenerIndex > -1) {
                 this._listeners[event].splice(listenerIndex, 1);
-                this.emit("removeListener", event, listener);
+                return true;
             }
+        }
+        return false;
+    };
+
+    removeListener = (event: string, listener: Function) => {
+        if (this._removeListener(event, listener)) {
+            this.emit("removeListener", event, listener);
         }
     };
 
@@ -97,7 +115,7 @@ export default class EventEmitter {
     };
 
     listeners = (event: string) => {
-        if (event && Object.prototype.hasOwnProperty.call(this._listeners, event)) {
+        if (event && hasOwnProperty(this._listeners, event)) {
             return this._listeners[event];
         }
         return [];
@@ -135,7 +153,7 @@ export default class EventEmitter {
         const callListeners = (e: string, callbacks: Listener[] = []) => {
             for (const callback of callbacks) {
                 if (callback.once) {
-                    this.removeListener(e, callback?.callback);
+                    this._removeListener(e, callback?.callback);
                 }
                 callback?.callback?.(eventObject, ...params);
             }
@@ -143,26 +161,26 @@ export default class EventEmitter {
 
         if (this.mode === "wildcard") {
             for (const ev in this._listeners) {
-                if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                    const parts = ev.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-                    const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
-
-                    if (regex.test(event)) {
-                        callListeners(ev, this._listeners[ev]);
-                    }
+                if (hasOwnProperty(this._listeners, ev) && this._wildcardsRegex[ev]?.test?.(event)) {
+                    callListeners(ev, this._listeners[ev]);
                 }
             }
         } else if (this.mode === "regex") {
             for (const ev in this._listeners) {
-                if (Object.prototype.hasOwnProperty.call(this._listeners, ev)) {
-                    const regex = new RegExp(ev);
-                    if (regex.test(event)) {
-                        callListeners(ev, this._listeners[ev]);
-                    }
+                if (hasOwnProperty(this._listeners, ev) && this._listenerRegex[ev]?.test?.(event)) {
+                    callListeners(ev, this._listeners[ev]);
                 }
             }
-        } else if (Object.prototype.hasOwnProperty.call(this._listeners, event)) {
+        } else if (hasOwnProperty(this._listeners, event)) {
             callListeners(event, this._listeners[event]);
         }
     };
+}
+
+function defineProperty(source: Object, key: string, value: any) {
+    return Object.defineProperty(source, key, {value, configurable: true, writable: true, enumerable: true});
+}
+
+function hasOwnProperty(obj: Object, key: string) {
+    return Object.prototype.hasOwnProperty.call(obj, key);
 }
