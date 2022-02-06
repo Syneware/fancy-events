@@ -1,7 +1,3 @@
-interface Listener {
-    callback: Function;
-    once: boolean;
-}
 interface EventEmitterOptions {
     mode?: 'wildcard' | 'regex' | 'simple';
     includeStack?: boolean;
@@ -28,7 +24,7 @@ export default class EventEmitter {
     removeAllListeners: (event: string) => void;
     eventNames: () => string[];
     listenerCount: (event: string) => number;
-    listeners: (event: string) => Listener[];
+    listeners: (event: string) => Function[];
     private _getStack;
     emit: (event: string, ...params: any[]) => void;
 }

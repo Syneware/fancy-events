@@ -65,14 +65,14 @@
             };
             this.eventNames = () => Object.keys(this._listeners);
             this.listenerCount = (event) => {
-                if (event) {
-                    return this.listeners(event).length;
+                if (event && hasOwnProperty(this._listeners, event)) {
+                    return this._listeners[event].length;
                 }
                 return 0;
             };
             this.listeners = (event) => {
                 if (event && hasOwnProperty(this._listeners, event)) {
-                    return this._listeners[event];
+                    return this._listeners[event].map(l => l.callback);
                 }
                 return [];
             };

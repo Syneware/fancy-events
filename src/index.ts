@@ -108,15 +108,15 @@ export default class EventEmitter {
     eventNames = () => Object.keys(this._listeners);
 
     listenerCount = (event: string): number => {
-        if (event) {
-            return this.listeners(event).length;
+        if (event && hasOwnProperty(this._listeners, event)) {
+            return this._listeners[event].length;
         }
         return 0;
     };
 
     listeners = (event: string) => {
         if (event && hasOwnProperty(this._listeners, event)) {
-            return this._listeners[event];
+            return this._listeners[event].map(l => l.callback);
         }
         return [];
     };

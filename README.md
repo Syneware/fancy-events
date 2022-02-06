@@ -31,7 +31,8 @@ A small and fast event emitter for node.js and browser with wildcards and regula
 
 ```javascript
 import EventEmitter from 'fancy-events';
-
+// OR
+const EventEmitter = require('fancy-events');
 
 const em = new EventEmitter();
 
@@ -43,4 +44,20 @@ em.on('todo.*', (e, data) => {
 
 em.emit('todo.add', {test: 'data'});
 
+```
+
+#### Browser
+```html
+<script src="https://unpkg.com/fancy-events@1.2.2/dist/fancy-events.min.js"></script>
+<script>
+    const em = new EventEmitter();
+
+    em.on('todo.*', (e, data) => {
+        console.log(e, data);
+    });
+
+    //...
+
+    em.emit('todo.add', {test: 'data'});
+</script>
 ```
