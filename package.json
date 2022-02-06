@@ -1,10 +1,8 @@
 {
   "name": "fancy-events",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A small and fast event emitter for node.js and browser with wildcards and regular expressions",
-  "main": "dist/fancy-events.cjs.js",
-  "module": "dist/fancy-events.es.js",
-  "browser": "dist/fancy-events.js",
+  "main": "dist/fancy-events.js",
   "types": "dist/fancy-events.d.ts",
   "scripts": {
     "prepublish": "pnpm run build",
@@ -28,8 +26,6 @@
     "wildcard"
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^21.0.1",
-    "@rollup/plugin-node-resolve": "^13.1.3",
     "@rollup/plugin-typescript": "^8.3.0",
     "rollup": "^2.67.0",
     "rollup-plugin-terser": "^7.0.2",

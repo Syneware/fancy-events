@@ -1,65 +1,35 @@
 import {terser} from "rollup-plugin-terser";
 import pluginTypescript from "@rollup/plugin-typescript";
-import pluginCommonjs from "@rollup/plugin-commonjs";
-import pluginNodeResolve from "@rollup/plugin-node-resolve";
 import pkg from "./package.json";
 
-const inputFileName = "src/index.ts";
+const banner = `/*!
+ * Fancy Events
+ * https://github.com/Syneware/fancy-events
+ *
+ * Copyright (c) 2022 Syneware
+ * Licensed under the MIT license. https://raw.githubusercontent.com/Syneware/fancy-events/master/LICENSE
+ */`;
 
 export default [
     {
-        input: inputFileName,
+        input: "src/index.ts",
         output: [
             {
                 name: "EventEmitter",
-                file: pkg.browser,
-                format: "iife",
+                file: pkg.main,
+                format: "umd",
+                banner,
             },
             {
                 name: "EventEmitter",
-                file: pkg.browser.replace(".js", ".min.js"),
+                file: pkg.main.replace(".js", ".min.js"),
                 format: "iife",
+                banner,
                 plugins: [terser()],
             },
         ],
         plugins: [
-            pluginTypescript({target: "es6"}),
-            pluginCommonjs({extensions: [".js", ".ts"]}),
-            pluginNodeResolve({browser: true}),
-        ],
-    },
-
-    // ES
-    {
-        input: inputFileName,
-        output: [
-            {
-                file: pkg.module,
-                format: "es",
-                exports: "named",
-            },
-        ],
-        plugins: [
-            pluginTypescript({target: 'ES2020'}),
-            pluginCommonjs({extensions: [".js", ".ts"]}),
-            pluginNodeResolve({browser: false}),
-        ],
-    },
-
-    // CommonJS
-    {
-        input: inputFileName,
-        output: [
-            {
-                file: pkg.main,
-                format: "cjs",
-                exports: "default",
-            },
-        ],
-        plugins: [
-            pluginTypescript({target: 'ES2020'}),
-            pluginCommonjs({extensions: [".js", ".ts"]}),
-            pluginNodeResolve({browser: false}),
+            pluginTypescript({target: "ES2020"}),
         ],
     },
 ];

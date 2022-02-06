@@ -1,5 +1,15 @@
-var EventEmitter = (function () {
-    'use strict';
+/*!
+ * Fancy Events
+ * https://github.com/Syneware/fancy-events
+ *
+ * Copyright (c) 2022 Syneware
+ * Licensed under the MIT license. https://raw.githubusercontent.com/Syneware/fancy-events/master/LICENSE
+ */
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+    typeof define === 'function' && define.amd ? define(factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.EventEmitter = factory());
+})(this, (function () { 'use strict';
 
     class EventEmitter {
         constructor({ mode = "wildcard", includeStack = false, delimiter = "." } = {}) {
@@ -22,15 +32,15 @@ var EventEmitter = (function () {
                 if (!hasOwnProperty(this._listenerRegex, event)) {
                     defineProperty(this._listenerRegex, event, new RegExp(event));
                 }
-                this._listeners[event].push({ callback: cb, once: !!(options === null || options === void 0 ? void 0 : options.once) });
+                this._listeners[event].push({ callback: cb, once: !!options?.once });
             };
             this.on = this.addListener;
             this.once = (event, cb, options = {}) => {
-                this.addListener(event, cb, Object.assign(Object.assign({}, options), { once: true }));
+                this.addListener(event, cb, { ...options, once: true });
             };
             this._removeListener = (event, listener) => {
                 if (this.listenerCount(event)) {
-                    let listenerIndex = this._listeners[event].findIndex((l) => (l === null || l === void 0 ? void 0 : l.callback) === listener);
+                    let listenerIndex = this._listeners[event].findIndex((l) => l?.callback === listener);
                     if (listenerIndex > -1) {
                         this._listeners[event].splice(listenerIndex, 1);
                         return true;
@@ -75,10 +85,9 @@ var EventEmitter = (function () {
                 const stacks = err.stack;
                 // @ts-ignore
                 Error.prepareStackTrace = prepareStackTraceOrg;
-                return (stacks === null || stacks === void 0 ? void 0 : stacks.slice(2)) || [];
+                return stacks?.slice(2) || [];
             };
             this.emit = (event, ...params) => {
-                var _a, _b, _c, _d;
                 const eventObject = {
                     event: event,
                 };
@@ -94,24 +103,23 @@ var EventEmitter = (function () {
                     }));
                 }
                 const callListeners = (e, callbacks = []) => {
-                    var _a;
                     for (const callback of callbacks) {
                         if (callback.once) {
-                            this._removeListener(e, callback === null || callback === void 0 ? void 0 : callback.callback);
+                            this._removeListener(e, callback?.callback);
                         }
-                        (_a = callback === null || callback === void 0 ? void 0 : callback.callback) === null || _a === void 0 ? void 0 : _a.call(callback, eventObject, ...params);
+                        callback?.callback?.(eventObject, ...params);
                     }
                 };
                 if (this.mode === "wildcard") {
                     for (const ev in this._listeners) {
-                        if (hasOwnProperty(this._listeners, ev) && ((_b = (_a = this._wildcardsRegex[ev]) === null || _a === void 0 ? void 0 : _a.test) === null || _b === void 0 ? void 0 : _b.call(_a, event))) {
+                        if (hasOwnProperty(this._listeners, ev) && this._wildcardsRegex[ev]?.test?.(event)) {
                             callListeners(ev, this._listeners[ev]);
                         }
                     }
                 }
                 else if (this.mode === "regex") {
                     for (const ev in this._listeners) {
-                        if (hasOwnProperty(this._listeners, ev) && ((_d = (_c = this._listenerRegex[ev]) === null || _c === void 0 ? void 0 : _c.test) === null || _d === void 0 ? void 0 : _d.call(_c, event))) {
+                        if (hasOwnProperty(this._listeners, ev) && this._listenerRegex[ev]?.test?.(event)) {
                             callListeners(ev, this._listeners[ev]);
                         }
                     }
@@ -140,4 +148,4 @@ var EventEmitter = (function () {
 
     return EventEmitter;
 
-})();
+}));
