@@ -1,7 +1,7 @@
 {
   "name": "fancy-events",
-  "version": "1.1.0",
-  "description": "",
+  "version": "1.2.0",
+  "description": "A small and fast event emitter for node.js and browser with wildcards and regular expressions",
   "main": "dist/fancy-events.cjs.js",
   "module": "dist/fancy-events.es.js",
   "browser": "dist/fancy-events.js",
@@ -23,7 +23,9 @@
     "eventemitter",
     "emitter",
     "nodejs",
-    "express"
+    "browser",
+    "regex",
+    "wildcard"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.0.1",

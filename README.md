@@ -1,5 +1,7 @@
 # Fancy Events
 
+A small and fast event emitter for node.js and browser with wildcards and regular expressions
+
 ## Installing
 
 `npm install fancy-events`
