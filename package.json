@@ -1,6 +1,6 @@
 {
   "name": "fancy-events",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A small and fast event emitter for node.js and browser with wildcards and regular expressions",
   "main": "dist/fancy-events.cjs.js",
   "module": "dist/fancy-events.es.js",
