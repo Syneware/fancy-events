@@ -28,6 +28,8 @@ export default class EventEmitter {
     listeners: (event: string) => Function[];
     private _getStack;
     private _callListeners;
+    private _callAsyncListeners;
     emit: (event: string, ...params: any[]) => boolean;
+    emitAsync: (event: string, ...params: any[]) => Promise<boolean>;
 }
 export {};

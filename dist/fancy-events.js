@@ -108,6 +108,18 @@
                     }
                 }
             };
+            this._callAsyncListeners = (e, eventObject, params) => {
+                const promises = [];
+                if (e && hasOwnProperty(this._listeners, e)) {
+                    for (const callback of this._listeners[e]) {
+                        if (callback.once) {
+                            this._removeListener(e, callback?.callback);
+                        }
+                        promises.push(callback?.callback?.(eventObject, ...params));
+                    }
+                }
+                return promises;
+            };
             this.emit = (event, ...params) => {
                 const eventObject = {
                     event: event,
@@ -145,6 +157,47 @@
                     listenerFound = true;
                 }
                 return listenerFound;
+            };
+            this.emitAsync = async (event, ...params) => {
+                const eventObject = {
+                    event: event,
+                };
+                if (this.includeStack) {
+                    // @ts-ignore
+                    eventObject.stack = this._getStack().map((stack) => ({
+                        typeName: stack.getTypeName(),
+                        methodName: stack.getMethodName(),
+                        function: stack.getFunction(),
+                        functionName: stack.getFunctionName(),
+                        fileName: stack.getFileName(),
+                        lineNumber: stack.getLineNumber(),
+                    }));
+                }
+                let promises = [];
+                if (this.mode === "wildcard") {
+                    for (const ev in this._listeners) {
+                        if (this._wildcardsRegex[ev]?.test?.(event)) {
+                            promises.push(...this._callAsyncListeners(ev, eventObject, params));
+                        }
+                    }
+                }
+                else if (this.mode === "regex") {
+                    for (const ev in this._listeners) {
+                        if (this._listenerRegex[ev]?.test?.(event)) {
+                            promises.push(...this._callAsyncListeners(ev, eventObject, params));
+                        }
+                    }
+                }
+                else if (hasOwnProperty(this._listeners, event)) {
+                    promises = this._callAsyncListeners(event, eventObject, params);
+                }
+                if (promises?.length) {
+                    await Promise.allSettled(promises);
+                    return true;
+                }
+                else {
+                    return false;
+                }
             };
             if (mode) {
                 this.mode = mode;
