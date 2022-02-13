@@ -6,7 +6,7 @@
   "types": "dist/fancy-events.d.ts",
   "scripts": {
     "prepublish": "pnpm run build",
-    "build": "rollup --config rollup.config.js && tsc src/index.ts --emitDeclarationOnly --declaration --outDir dist && mv dist/index.d.ts dist/fancy-events.d.ts",
+    "build": "rollup --config rollup.config.js && tsc src/index.ts --emitDeclarationOnly --declaration --target ES2020 --outDir dist && mv dist/index.d.ts dist/fancy-events.d.ts",
     "clean": "rm -rf dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

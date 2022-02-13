@@ -50,7 +50,16 @@ export default class EventEmitter {
         }
     }
 
-    addListener = (event: string, cb: Function, options: { once?: boolean } = {}) => {
+    addListener = (event: string | string[], cb: Function, options: { once?: boolean } = {}): EventEmitter => {
+        if (Array.isArray(event)) {
+            event.forEach((e) => this._addListener(e, cb, options))
+        } else {
+            this._addListener(event, cb, options)
+        }
+        return this;
+    }
+
+    private _addListener = (event: string, cb: Function, options: { once?: boolean } = {}) => {
         if (!hasOwnProperty(this._listeners, event)) {
             defineProperty(this._listeners, event, []);
         }
@@ -72,7 +81,7 @@ export default class EventEmitter {
     on = this.addListener;
 
     once = (event: string, cb: Function, options = {}) => {
-        this.addListener(event, cb, {...options, once: true});
+        return this.addListener(event, cb, {...options, once: true});
     };
 
     private _removeListener = (event: string, listener: Function) => {
@@ -86,15 +95,16 @@ export default class EventEmitter {
         return false;
     };
 
-    removeListener = (event: string, listener: Function) => {
+    removeListener = (event: string, listener: Function): EventEmitter => {
         if (this._removeListener(event, listener)) {
             this.emit("removeListener", event, listener);
         }
+        return this;
     };
 
     off = this.removeListener;
 
-    removeAllListeners = (event: string) => {
+    removeAllListeners = (event: string): EventEmitter => {
         if (event && this.listeners(event).length) {
             const callbacks = this.listeners(event);
             delete this._listeners[event];
@@ -103,6 +113,7 @@ export default class EventEmitter {
                 this.emit("removeListener", event, callback);
             }
         }
+        return this;
     };
 
     eventNames = () => Object.keys(this._listeners);
@@ -133,6 +144,17 @@ export default class EventEmitter {
         return stacks?.slice(2) || [];
     };
 
+    private _callListeners = (e: string, eventObject: EventObject, params: any[]) => {
+        if (e && hasOwnProperty(this._listeners, e)) {
+            for (const callback of this._listeners[e]) {
+                if (callback.once) {
+                    this._removeListener(e, callback?.callback);
+                }
+                callback?.callback?.(eventObject, ...params);
+            }
+        }
+    };
+
     emit = (event: string, ...params: any[]) => {
         const eventObject: EventObject = {
             event: event,
@@ -150,30 +172,26 @@ export default class EventEmitter {
             }));
         }
 
-        const callListeners = (e: string, callbacks: Listener[] = []) => {
-            for (const callback of callbacks) {
-                if (callback.once) {
-                    this._removeListener(e, callback?.callback);
-                }
-                callback?.callback?.(eventObject, ...params);
-            }
-        };
-
+        let listenerFound = false;
         if (this.mode === "wildcard") {
             for (const ev in this._listeners) {
-                if (hasOwnProperty(this._listeners, ev) && this._wildcardsRegex[ev]?.test?.(event)) {
-                    callListeners(ev, this._listeners[ev]);
+                if (this._wildcardsRegex[ev]?.test?.(event)) {
+                    this._callListeners(ev, eventObject, params);
+                    listenerFound = true;
                 }
             }
         } else if (this.mode === "regex") {
             for (const ev in this._listeners) {
-                if (hasOwnProperty(this._listeners, ev) && this._listenerRegex[ev]?.test?.(event)) {
-                    callListeners(ev, this._listeners[ev]);
+                if (this._listenerRegex[ev]?.test?.(event)) {
+                    this._callListeners(ev, eventObject, params);
+                    listenerFound = true;
                 }
             }
         } else if (hasOwnProperty(this._listeners, event)) {
-            callListeners(event, this._listeners[event]);
+            this._callListeners(event, eventObject, params);
+            listenerFound = true;
         }
+        return listenerFound;
     };
 }
 

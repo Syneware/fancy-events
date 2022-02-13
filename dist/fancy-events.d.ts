@@ -11,21 +11,23 @@ export default class EventEmitter {
     includeStack: boolean;
     delimiter: string;
     constructor({ mode, includeStack, delimiter }?: EventEmitterOptions);
-    addListener: (event: string, cb: Function, options?: {
+    addListener: (event: string | string[], cb: Function, options?: {
         once?: boolean;
-    }) => void;
-    on: (event: string, cb: Function, options?: {
+    }) => EventEmitter;
+    private _addListener;
+    on: (event: string | string[], cb: Function, options?: {
         once?: boolean;
-    }) => void;
-    once: (event: string, cb: Function, options?: {}) => void;
+    }) => EventEmitter;
+    once: (event: string, cb: Function, options?: {}) => EventEmitter;
     private _removeListener;
-    removeListener: (event: string, listener: Function) => void;
-    off: (event: string, listener: Function) => void;
-    removeAllListeners: (event: string) => void;
+    removeListener: (event: string, listener: Function) => EventEmitter;
+    off: (event: string, listener: Function) => EventEmitter;
+    removeAllListeners: (event: string) => EventEmitter;
     eventNames: () => string[];
     listenerCount: (event: string) => number;
     listeners: (event: string) => Function[];
     private _getStack;
-    emit: (event: string, ...params: any[]) => void;
+    private _callListeners;
+    emit: (event: string, ...params: any[]) => boolean;
 }
 export {};
