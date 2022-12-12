@@ -3,14 +3,6 @@ interface Listener {
     once: boolean;
 }
 
-interface Listeners {
-    [key: string]: Listener[];
-}
-
-interface ListenersRegex {
-    [key: string]: RegExp;
-}
-
 interface EventObject {
     event: string;
     stack?: {
@@ -30,9 +22,9 @@ interface EventEmitterOptions {
 }
 
 export default class EventEmitter {
-    private _listeners: Listeners = {};
-    private _wildcardsRegex: ListenersRegex = {};
-    private _listenerRegex: ListenersRegex = {};
+    private _listeners = new Map<string, Listener[]>();
+    private _wildcardsRegex = new Map<string, RegExp>();
+    private _listenerRegex = new Map<string, RegExp>();
 
     mode = "wildcard";
     includeStack = false;
@@ -60,22 +52,22 @@ export default class EventEmitter {
     }
 
     private _addListener = (event: string, cb: Function, options: { once?: boolean } = {}) => {
-        if (!hasOwnProperty(this._listeners, event)) {
-            defineProperty(this._listeners, event, []);
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, []);
         }
         this.emit("newListener", event, cb);
 
-        if (!hasOwnProperty(this._wildcardsRegex, event)) {
+        if (this.mode === "wildcard" && !this._wildcardsRegex.has(event)) {
             const parts = event.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
             const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
-            defineProperty(this._wildcardsRegex, event, regex);
+            this._wildcardsRegex.set(event, regex);
         }
 
-        if (!hasOwnProperty(this._listenerRegex, event)) {
-            defineProperty(this._listenerRegex, event, new RegExp(event));
+        if (this.mode === "regex" && !this._listenerRegex.has(event)) {
+            this._listenerRegex.set(event, new RegExp(event))
         }
 
-        this._listeners[event].push({callback: cb, once: !!options?.once});
+        this._getListeners(event).push({callback: cb, once: !!options?.once});
     };
 
     on = this.addListener;
@@ -86,9 +78,9 @@ export default class EventEmitter {
 
     private _removeListener = (event: string, listener: Function) => {
         if (this.listenerCount(event)) {
-            let listenerIndex = this._listeners[event].findIndex((l) => l?.callback === listener);
+            let listenerIndex = this._getListeners(event).findIndex((l) => l?.callback === listener);
             if (listenerIndex > -1) {
-                this._listeners[event].splice(listenerIndex, 1);
+                this._getListeners(event).splice(listenerIndex, 1);
                 return true;
             }
         }
@@ -107,7 +99,7 @@ export default class EventEmitter {
     removeAllListeners = (event: string): EventEmitter => {
         if (event && this.listeners(event).length) {
             const callbacks = this.listeners(event);
-            delete this._listeners[event];
+            this._listeners.delete(event);
 
             for (const callback of callbacks) {
                 this.emit("removeListener", event, callback);
@@ -116,21 +108,13 @@ export default class EventEmitter {
         return this;
     };
 
-    eventNames = () => Object.keys(this._listeners);
+    eventNames = () => this._listeners.keys();
 
-    listenerCount = (event: string): number => {
-        if (event && hasOwnProperty(this._listeners, event)) {
-            return this._listeners[event].length;
-        }
-        return 0;
-    };
+    listenerCount = (event: string): number => this._getListeners(event)?.length || 0;
 
-    listeners = (event: string) => {
-        if (event && hasOwnProperty(this._listeners, event)) {
-            return this._listeners[event].map(l => l.callback);
-        }
-        return [];
-    };
+    listeners = (event: string) => this._getListeners(event)?.map?.(l => l.callback) || [];
+
+    _getListeners = (event: string) => this._listeners.get(event) || [];
 
     private _getStack = () => {
         // @ts-ignore
@@ -144,27 +128,25 @@ export default class EventEmitter {
         return stacks?.slice(2) || [];
     };
 
-    private _callListeners = (e: string, eventObject: EventObject, params: any[]) => {
-        if (e && hasOwnProperty(this._listeners, e)) {
-            for (const callback of this._listeners[e]) {
-                if (callback.once) {
-                    this._removeListener(e, callback?.callback);
-                }
-                callback?.callback?.(eventObject, ...params);
+    private _callListeners = (event: string, eventObject: EventObject, params: any[]) => {
+        for (const listener of this._getListeners(event)) {
+            if (listener.once) {
+                this._removeListener(event, listener?.callback);
             }
+            listener?.callback?.(eventObject, ...params);
         }
+
     };
 
-    private _callAsyncListeners = (e: string, eventObject: EventObject, params: any[]) => {
+    private _callAsyncListeners = (event: string, eventObject: EventObject, params: any[]) => {
         const promises: Promise<any>[] = [];
-        if (e && hasOwnProperty(this._listeners, e)) {
-            for (const callback of this._listeners[e]) {
-                if (callback.once) {
-                    this._removeListener(e, callback?.callback);
-                }
-                promises.push(callback?.callback?.(eventObject, ...params));
+        for (const callback of this._getListeners(event)) {
+            if (callback.once) {
+                this._removeListener(event, callback?.callback);
             }
+            promises.push(callback?.callback?.(eventObject, ...params));
         }
+
         return promises;
     };
 
@@ -187,20 +169,20 @@ export default class EventEmitter {
 
         let listenerFound = false;
         if (this.mode === "wildcard") {
-            for (const ev in this._listeners) {
-                if (this._wildcardsRegex[ev]?.test?.(event)) {
+            for (const ev of this._listeners.keys()) {
+                if (this._wildcardsRegex.get(ev)?.test?.(event)) {
                     this._callListeners(ev, eventObject, params);
                     listenerFound = true;
                 }
             }
         } else if (this.mode === "regex") {
-            for (const ev in this._listeners) {
-                if (this._listenerRegex[ev]?.test?.(event)) {
+            for (const ev of this._listeners.keys()) {
+                if (this._listenerRegex.get(ev)?.test?.(event)) {
                     this._callListeners(ev, eventObject, params);
                     listenerFound = true;
                 }
             }
-        } else if (hasOwnProperty(this._listeners, event)) {
+        } else if (this._listeners.has(event)) {
             this._callListeners(event, eventObject, params);
             listenerFound = true;
         }
@@ -226,18 +208,18 @@ export default class EventEmitter {
 
         let promises: Promise<any>[] = [];
         if (this.mode === "wildcard") {
-            for (const ev in this._listeners) {
-                if (this._wildcardsRegex[ev]?.test?.(event)) {
+            for (const ev of this._listeners.keys()) {
+                if (this._wildcardsRegex.get(ev)?.test?.(event)) {
                     promises.push(...this._callAsyncListeners(ev, eventObject, params));
                 }
             }
         } else if (this.mode === "regex") {
-            for (const ev in this._listeners) {
-                if (this._listenerRegex[ev]?.test?.(event)) {
+            for (const ev of this._listeners.keys()) {
+                if (this._listenerRegex.get(ev)?.test?.(event)) {
                     promises.push(...this._callAsyncListeners(ev, eventObject, params));
                 }
             }
-        } else if (hasOwnProperty(this._listeners, event)) {
+        } else if (this._listeners.has(event)) {
             promises = this._callAsyncListeners(event, eventObject, params);
         }
 
@@ -247,12 +229,4 @@ export default class EventEmitter {
         }
         return false;
     };
-}
-
-function defineProperty(source: Object, key: string, value: any) {
-    return Object.defineProperty(source, key, {value, configurable: true, writable: true, enumerable: true});
-}
-
-function hasOwnProperty(obj: Object, key: string) {
-    return Object.prototype.hasOwnProperty.call(obj, key);
 }

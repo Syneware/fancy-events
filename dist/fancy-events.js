@@ -13,9 +13,9 @@
 
     class EventEmitter {
         constructor({ mode = "wildcard", includeStack = false, delimiter = "." } = {}) {
-            this._listeners = {};
-            this._wildcardsRegex = {};
-            this._listenerRegex = {};
+            this._listeners = new Map();
+            this._wildcardsRegex = new Map();
+            this._listenerRegex = new Map();
             this.mode = "wildcard";
             this.includeStack = false;
             this.delimiter = ".";
@@ -29,19 +29,19 @@
                 return this;
             };
             this._addListener = (event, cb, options = {}) => {
-                if (!hasOwnProperty(this._listeners, event)) {
-                    defineProperty(this._listeners, event, []);
+                if (!this._listeners.has(event)) {
+                    this._listeners.set(event, []);
                 }
                 this.emit("newListener", event, cb);
-                if (!hasOwnProperty(this._wildcardsRegex, event)) {
+                if (this.mode === "wildcard" && !this._wildcardsRegex.has(event)) {
                     const parts = event.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
                     const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
-                    defineProperty(this._wildcardsRegex, event, regex);
+                    this._wildcardsRegex.set(event, regex);
                 }
-                if (!hasOwnProperty(this._listenerRegex, event)) {
-                    defineProperty(this._listenerRegex, event, new RegExp(event));
+                if (this.mode === "regex" && !this._listenerRegex.has(event)) {
+                    this._listenerRegex.set(event, new RegExp(event));
                 }
-                this._listeners[event].push({ callback: cb, once: !!options?.once });
+                this._getListeners(event).push({ callback: cb, once: !!options?.once });
             };
             this.on = this.addListener;
             this.once = (event, cb, options = {}) => {
@@ -49,9 +49,9 @@
             };
             this._removeListener = (event, listener) => {
                 if (this.listenerCount(event)) {
-                    let listenerIndex = this._listeners[event].findIndex((l) => l?.callback === listener);
+                    let listenerIndex = this._getListeners(event).findIndex((l) => l?.callback === listener);
                     if (listenerIndex > -1) {
-                        this._listeners[event].splice(listenerIndex, 1);
+                        this._getListeners(event).splice(listenerIndex, 1);
                         return true;
                     }
                 }
@@ -67,26 +67,17 @@
             this.removeAllListeners = (event) => {
                 if (event && this.listeners(event).length) {
                     const callbacks = this.listeners(event);
-                    delete this._listeners[event];
+                    this._listeners.delete(event);
                     for (const callback of callbacks) {
                         this.emit("removeListener", event, callback);
                     }
                 }
                 return this;
             };
-            this.eventNames = () => Object.keys(this._listeners);
-            this.listenerCount = (event) => {
-                if (event && hasOwnProperty(this._listeners, event)) {
-                    return this._listeners[event].length;
-                }
-                return 0;
-            };
-            this.listeners = (event) => {
-                if (event && hasOwnProperty(this._listeners, event)) {
-                    return this._listeners[event].map(l => l.callback);
-                }
-                return [];
-            };
+            this.eventNames = () => this._listeners.keys();
+            this.listenerCount = (event) => this._getListeners(event)?.length || 0;
+            this.listeners = (event) => this._getListeners(event)?.map?.(l => l.callback) || [];
+            this._getListeners = (event) => this._listeners.get(event) || [];
             this._getStack = () => {
                 // @ts-ignore
                 const prepareStackTraceOrg = Error.prepareStackTrace;
@@ -98,25 +89,21 @@
                 Error.prepareStackTrace = prepareStackTraceOrg;
                 return stacks?.slice(2) || [];
             };
-            this._callListeners = (e, eventObject, params) => {
-                if (e && hasOwnProperty(this._listeners, e)) {
-                    for (const callback of this._listeners[e]) {
-                        if (callback.once) {
-                            this._removeListener(e, callback?.callback);
-                        }
-                        callback?.callback?.(eventObject, ...params);
+            this._callListeners = (event, eventObject, params) => {
+                for (const listener of this._getListeners(event)) {
+                    if (listener.once) {
+                        this._removeListener(event, listener?.callback);
                     }
+                    listener?.callback?.(eventObject, ...params);
                 }
             };
-            this._callAsyncListeners = (e, eventObject, params) => {
+            this._callAsyncListeners = (event, eventObject, params) => {
                 const promises = [];
-                if (e && hasOwnProperty(this._listeners, e)) {
-                    for (const callback of this._listeners[e]) {
-                        if (callback.once) {
-                            this._removeListener(e, callback?.callback);
-                        }
-                        promises.push(callback?.callback?.(eventObject, ...params));
+                for (const callback of this._getListeners(event)) {
+                    if (callback.once) {
+                        this._removeListener(event, callback?.callback);
                     }
+                    promises.push(callback?.callback?.(eventObject, ...params));
                 }
                 return promises;
             };
@@ -137,22 +124,22 @@
                 }
                 let listenerFound = false;
                 if (this.mode === "wildcard") {
-                    for (const ev in this._listeners) {
-                        if (this._wildcardsRegex[ev]?.test?.(event)) {
+                    for (const ev of this._listeners.keys()) {
+                        if (this._wildcardsRegex.get(ev)?.test?.(event)) {
                             this._callListeners(ev, eventObject, params);
                             listenerFound = true;
                         }
                     }
                 }
                 else if (this.mode === "regex") {
-                    for (const ev in this._listeners) {
-                        if (this._listenerRegex[ev]?.test?.(event)) {
+                    for (const ev of this._listeners.keys()) {
+                        if (this._listenerRegex.get(ev)?.test?.(event)) {
                             this._callListeners(ev, eventObject, params);
                             listenerFound = true;
                         }
                     }
                 }
-                else if (hasOwnProperty(this._listeners, event)) {
+                else if (this._listeners.has(event)) {
                     this._callListeners(event, eventObject, params);
                     listenerFound = true;
                 }
@@ -175,29 +162,27 @@
                 }
                 let promises = [];
                 if (this.mode === "wildcard") {
-                    for (const ev in this._listeners) {
-                        if (this._wildcardsRegex[ev]?.test?.(event)) {
+                    for (const ev of this._listeners.keys()) {
+                        if (this._wildcardsRegex.get(ev)?.test?.(event)) {
                             promises.push(...this._callAsyncListeners(ev, eventObject, params));
                         }
                     }
                 }
                 else if (this.mode === "regex") {
-                    for (const ev in this._listeners) {
-                        if (this._listenerRegex[ev]?.test?.(event)) {
+                    for (const ev of this._listeners.keys()) {
+                        if (this._listenerRegex.get(ev)?.test?.(event)) {
                             promises.push(...this._callAsyncListeners(ev, eventObject, params));
                         }
                     }
                 }
-                else if (hasOwnProperty(this._listeners, event)) {
+                else if (this._listeners.has(event)) {
                     promises = this._callAsyncListeners(event, eventObject, params);
                 }
                 if (promises?.length) {
                     await Promise.allSettled(promises);
                     return true;
                 }
-                else {
-                    return false;
-                }
+                return false;
             };
             if (mode) {
                 this.mode = mode;
@@ -209,12 +194,6 @@
                 this.delimiter = delimiter;
             }
         }
-    }
-    function defineProperty(source, key, value) {
-        return Object.defineProperty(source, key, { value, configurable: true, writable: true, enumerable: true });
-    }
-    function hasOwnProperty(obj, key) {
-        return Object.prototype.hasOwnProperty.call(obj, key);
     }
 
     return EventEmitter;

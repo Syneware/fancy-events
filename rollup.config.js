@@ -1,6 +1,6 @@
-import {terser} from "rollup-plugin-terser";
+import terser from '@rollup/plugin-terser';
 import pluginTypescript from "@rollup/plugin-typescript";
-import pkg from "./package.json";
+import fs from "fs";
 
 const banner = `/*!
  * Fancy Events
@@ -9,6 +9,8 @@ const banner = `/*!
  * Copyright (c) 2022 Syneware
  * Licensed under the MIT license. https://raw.githubusercontent.com/Syneware/fancy-events/master/LICENSE
  */`;
+
+const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
 export default [
     {
