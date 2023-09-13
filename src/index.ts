@@ -65,13 +65,13 @@ export default class EventEmitter {
         }
         this.emit("newListener", event, cb);
 
-        if (!hasOwnProperty(this._wildcardsRegex, event)) {
+        if (this.mode === "wildcard" && !hasOwnProperty(this._wildcardsRegex, event)) {
             const parts = event.split(this.delimiter).map((p) => (p === "*" ? "\\w*" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
             const regex = new RegExp(`^${parts.join("\\" + this.delimiter)}$`);
             defineProperty(this._wildcardsRegex, event, regex);
         }
 
-        if (!hasOwnProperty(this._listenerRegex, event)) {
+        if (this.mode === "regex" && !hasOwnProperty(this._listenerRegex, event)) {
             defineProperty(this._listenerRegex, event, new RegExp(event));
         }
 

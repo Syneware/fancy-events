@@ -7,14 +7,17 @@
 </head>
 <body>
 <script>
-    const em = new EventEmitter();
+    const em = new EventEmitter({mode: "simple"});
 
-    em.on('todo.*', (e, data) => {
+    em.on('todo', (e, data) => {
         console.log(e, data);
     });
 
     //...
 
+    for (let i = 0; i < 100000; i++) {
+        em.emit('todo', {id: i});
+    }
     em.emit('todo.add', {test: 'data'});
 
 </script>
